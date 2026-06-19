@@ -1,0 +1,273 @@
+CREATE TABLE bus_drivers (
+    driver_first_name varchar2(50),
+    driver_last_name varchar2(50) NOT NULL,
+    personal_code varchar2(11) PRIMARY KEY
+);
+
+CREATE TABLE salaries (
+    paid_salary number(6,2),
+    hours_driven number(3),
+    year number(4),
+    month char(3),
+    driver_code varchar2(11),
+    CONSTRAINT pk_salaries PRIMARY KEY (year, month, driver_code),
+    CONSTRAINT fk_driver_salaries FOREIGN KEY (driver_code) 
+        REFERENCES bus_drivers(personal_code) ON DELETE CASCADE
+);
+
+CREATE TABLE buses (
+    bus_number varchar2(8) PRIMARY KEY,
+    seat_count number(3),
+    availability char(1),
+    cost_per_kilometer number(3,2),
+    hourly_rental_cost number(4,2)
+);
+
+CREATE TABLE trips (
+    trip_number number(3) PRIMARY KEY,
+    departure_time date,
+    duration number(4),
+    destination varchar2(30),
+    kilometers number,
+    driver varchar2(11),
+    bus_number varchar2(8),
+    CONSTRAINT fk_trip_driver FOREIGN KEY (driver) 
+        REFERENCES bus_drivers(personal_code) ON DELETE SET NULL,
+    CONSTRAINT fk_trip_bus FOREIGN KEY (bus_number) 
+        REFERENCES buses(bus_number) ON DELETE SET NULL
+);
+
+
+INSERT INTO bus_drivers VALUES ('Freddie', 'Mercury', '67390282019');
+INSERT INTO bus_drivers VALUES ('Beyoncé', 'Knowles', '12436190190');
+INSERT INTO bus_drivers VALUES ('David', 'Bowie', '56129018212');
+INSERT INTO bus_drivers VALUES ('Elvis', 'Presley', '64792181931');
+INSERT INTO bus_drivers VALUES ('Adele', 'Adkins', '98614209810');
+INSERT INTO bus_drivers VALUES ('Michael', 'Jackson', '62719211112');
+INSERT INTO bus_drivers VALUES ('Lady', 'Gaga', '09872317189');
+
+
+INSERT INTO salaries VALUES (4672.25, 160, 2023, 'JAN', '67390282019');
+INSERT INTO salaries VALUES (5675.11, 161, 2023, 'JAN', '12436190190');
+INSERT INTO salaries VALUES (4660.23, 158, 2023, 'JAN', '56129018212');
+INSERT INTO salaries VALUES (5749.20, 140, 2023, 'JAN', '64792181931');
+INSERT INTO salaries VALUES (5500.72, 171, 2023, 'JAN', '98614209810');
+
+-- DECEMBER
+INSERT INTO salaries VALUES (4688.34, 152, 2022, 'DEC', '67390282019');
+INSERT INTO salaries VALUES (4789.55, 155, 2022, 'DEC', '12436190190');
+INSERT INTO salaries VALUES (5280.25, 140, 2022, 'DEC', '56129018212');
+INSERT INTO salaries VALUES (2672.25, 132, 2022, 'DEC', '64792181931');
+INSERT INTO salaries VALUES (3567.11, 70, 2022, 'DEC', '98614209810');
+
+-- NOVEMBER
+INSERT INTO salaries VALUES (7541.21, 181, 2022, 'NOV', '67390282019');
+INSERT INTO salaries VALUES (3472.25, 89, 2022, 'NOV', '12436190190');
+INSERT INTO salaries VALUES (3071.85, 86, 2022, 'NOV', '56129018212');
+INSERT INTO salaries VALUES (4072.25, 90, 2022, 'NOV', '64792181931');
+INSERT INTO salaries VALUES (4675.67, 173, 2022, 'NOV', '98614209810');
+
+-- OCTOBER
+INSERT INTO salaries VALUES (4672.25, 160, 2022, 'OCT', '67390282019');
+INSERT INTO salaries VALUES (6719.89, 160, 2022, 'OCT', '12436190190');
+INSERT INTO salaries VALUES (5671.20, 160, 2022, 'OCT', '56129018212');
+INSERT INTO salaries VALUES (6710.25, 160, 2022, 'OCT', '64792181931');
+INSERT INTO salaries VALUES (3780.25, 160, 2022, 'OCT', '98614209810');
+
+
+INSERT INTO buses VALUES ('1L1K3', 109, 1, 1.88, 34);
+INSERT INTO buses VALUES ('D474B453', 61, 1, 1.36, 33);
+INSERT INTO buses VALUES ('5Y573M5', 90, 1, 1.84, 30);
+
+
+INSERT INTO trips VALUES (111, TO_DATE('2023-JAN-02 17:30','YYYY-MON-DD HH24:MI'), 74,'Madrid', 7176, '67390282019','1L1K3');
+INSERT INTO trips VALUES (112, TO_DATE('2023-JAN-16 09:30','YYYY-MON-DD HH24:MI'), 54,'Rome', 4858, '67390282019','D474B453');
+INSERT INTO trips VALUES (113, TO_DATE('2022-DEC-05 18:30','YYYY-MON-DD HH24:MI'), 30,'Berlin', 2448, '67390282019','5Y573M5');
+
+INSERT INTO trips VALUES (114, TO_DATE('2022-DEC-05 10:00','YYYY-MON-DD HH24:MI'), 30,'Prague', 2606, '12436190190','D474B453');
+INSERT INTO trips VALUES (115, TO_DATE('2022-DEC-12 17:00','YYYY-MON-DD HH24:MI'), 28,'Berlin', 2478, '12436190190','D474B453');
+INSERT INTO trips VALUES (116, TO_DATE('2023-JAN-09 20:30','YYYY-MON-DD HH24:MI'), 28,'Berlin', 2478, '12436190190','D474B453');
+
+INSERT INTO trips VALUES (117, TO_DATE('2022-DEC-12 17:30','YYYY-MON-DD HH24:MI'), 22,'Poznan', 1965, '56129018212','5Y573M5');
+INSERT INTO trips VALUES (118, TO_DATE('2022-DEC-19 09:00','YYYY-MON-DD HH24:MI'), 30,'Prague', 2606, '56129018212','5Y573M5');
+INSERT INTO trips VALUES (119, TO_DATE('2022-DEC-26 10:30','YYYY-MON-DD HH24:MI'), 30,'Berlin', 2606, '56129018212','5Y573M5');
+INSERT INTO trips VALUES (120, TO_DATE('2023-JAN-16 06:00','YYYY-MON-DD HH24:MI'), 22,'Poznan', 1965, '56129018212','5Y573M5');
+INSERT INTO trips VALUES (121, TO_DATE('2023-JAN-23 21:30','YYYY-MON-DD HH24:MI'), 30,'Prague', 2429, '56129018212','5Y573M5');
+
+INSERT INTO trips VALUES (122, TO_DATE('2023-JAN-02 17:30','YYYY-MON-DD HH24:MI'), 30,'Berlin', 2448, '64792181931','D474B453');
+
+INSERT INTO trips VALUES (123, TO_DATE('2022-DEC-05 10:00','YYYY-MON-DD HH24:MI'), 56,'Rome', 5142, '98614209810','1L1K3');
+INSERT INTO trips VALUES (124, TO_DATE('2023-JAN-16 06:30','YYYY-MON-DD HH24:MI'), 76,'Madrid', 7048, '98614209810','1L1K3');
+INSERT INTO trips VALUES (125, TO_DATE('2022-DEC-19 09:00','YYYY-MON-DD HH24:MI'), 24,'Poznan', 1896, '98614209810','D474B453');
+INSERT INTO trips VALUES (126, TO_DATE('2022-DEC-26 10:30','YYYY-MON-DD HH24:MI'), 32,'Prague', 2826, '98614209810','D474B453');
+INSERT INTO trips VALUES (127, TO_DATE('2023-JAN-02 21:00','YYYY-MON-DD HH24:MI'), 32,'Prague', 2826, '98614209810','5Y573M5');
+INSERT INTO trips VALUES (128, TO_DATE('2023-JAN-09 22:30','YYYY-MON-DD HH24:MI'), 24,'Poznan', 1896, '98614209810','5Y573M5');
+
+--PIVOT command
+--Querying trips directly gives a chaotic result
+SELECT * FROM trips
+PIVOT(
+    COUNT(trip_number)
+    FOR destination
+    IN ('Berlin', 'Madrid')
+) 
+ORDER BY bus_number;
+
+--This is one of the purposes for using views
+--Create a view with only the fields we need
+CREATE OR REPLACE VIEW trip_statistics AS
+(SELECT trip_number, destination, bus_number FROM trips);
+
+SELECT * FROM trip_statistics
+PIVOT(
+    COUNT(trip_number)
+    FOR destination
+    IN ('Berlin', 'Madrid', 'Poznan', 'Rome', 'Prague')
+) 
+ORDER BY bus_number;
+
+--GROUP BY options
+SELECT destination, bus_number, driver, count(trip_number) AS COUNT
+FROM trips
+GROUP BY destination, bus_number, driver;
+
+SELECT destination, bus_number, driver, count(trip_number) 
+FROM trips
+GROUP BY ROLLUP (destination, bus_number, driver);
+
+SELECT destination, bus_number, driver, count(trip_number) 
+FROM trips
+GROUP BY CUBE (destination, bus_number, driver);
+
+--GROUPING creates a bitmap
+
+SELECT destination, bus_number, driver, count(trip_number), 
+    GROUPING(destination) as d,  
+    GROUPING(bus_number) as bn, 
+    GROUPING(driver) as dr
+FROM trips
+GROUP BY CUBE (destination, bus_number, driver);
+
+--We can also use HAVING with these groups
+
+SELECT destination, bus_number, driver, count(trip_number), 
+    GROUPING(destination) as d,  
+    GROUPING(bus_number) as bn, 
+    GROUPING(driver) as dr
+FROM trips
+GROUP BY CUBE (destination, bus_number, driver)
+HAVING GROUPING(destination) = 0;
+
+--To format results, we use DECODE
+SELECT destination, bus_number, driver, count(trip_number), 
+    DECODE(GROUPING(destination),1,'yes',0,'no') as d,  
+    DECODE(GROUPING(bus_number),1,'yes', 0, 'no') as bn, 
+    DECODE(GROUPING(driver),1,'yes') as dr
+FROM trips
+GROUP BY CUBE (destination, bus_number, driver)
+HAVING GROUPING(destination) = 0;
+
+SELECT 
+    DECODE(GROUPING(destination),1,'Total', destination) as d,  
+    DECODE(GROUPING(bus_number),1,'Total', bus_number) as bn, 
+    DECODE(GROUPING(driver),1,'Total', driver) as dr, 
+    count(trip_number)
+FROM trips
+GROUP BY CUBE (destination, bus_number, driver)
+HAVING GROUPING(destination) = 0;
+
+--MODEL query
+--ERROR!!!
+SELECT * 
+FROM trips
+MODEL 
+DIMENSION BY (destination, driver, bus_number)  
+MEASURES (kilometers)
+RULES(); 	
+
+--Check existing values to understand structure
+SELECT destination, driver, bus_number
+FROM trips
+ORDER BY destination, driver, bus_number;
+
+--Why doesn't it work directly?
+--MODEL doesn't group, it works with existing values
+--Let’s create a grouped view
+
+CREATE OR REPLACE VIEW trip_statistics_model AS
+(SELECT driver, destination, bus_number, count(trip_number) as trip_count
+ FROM trips
+ GROUP BY driver, destination, bus_number);
+
+SELECT * 
+FROM trip_statistics_model
+MODEL 
+DIMENSION BY (destination, driver, bus_number)  
+MEASURES (trip_count)
+RULES(); 	
+
+--To demonstrate PARTITION BY, let’s use the salaries table,
+--where the primary key is "naturally" structured
+--here we have an error which comes from logics - months would repeat
+SELECT * 
+FROM salaries s JOIN bus_drivers d 
+ON s.driver_code = d.personal_code
+MODEL 
+DIMENSION BY (year, driver_last_name)  
+MEASURES (paid_salary)
+RULES(); 	
+
+SELECT * 
+FROM salaries s JOIN bus_drivers d 
+ON s.driver_code = d.personal_code
+MODEL 
+PARTITION BY (month)
+DIMENSION BY (year, driver_last_name)  
+MEASURES (paid_salary)
+RULES()
+ORDER BY year;
+
+--RULES section
+
+--Without PARTITION
+SELECT * 
+FROM salaries s JOIN bus_drivers d 
+ON s.driver_code = d.personal_code
+MODEL 
+DIMENSION BY (year, driver_last_name, month)  
+MEASURES (paid_salary)
+RULES(
+    paid_salary[2023,'Adkins','JAN'] = paid_salary[2023,'Adkins','JAN']*1.1
+)
+ORDER BY year;
+
+--What happens with PARTITION?
+SELECT * 
+FROM salaries s JOIN bus_drivers d 
+ON s.driver_code = d.personal_code
+MODEL 
+PARTITION BY (month)
+DIMENSION BY (year, driver_last_name)  
+MEASURES (paid_salary)
+RULES(
+    paid_salary[2023,'Adkins'] = paid_salary[2023,'Adkins']*1.1
+)
+ORDER BY year;
+
+--Various rule examples
+SELECT * 
+FROM salaries s JOIN bus_drivers d 
+ON s.driver_code = d.personal_code
+MODEL 
+DIMENSION BY (year, driver_last_name, month)  
+MEASURES (paid_salary)
+RULES(
+    paid_salary[2023,'Adkins','JAN'] = paid_salary[2023,'Adkins','JAN']*1.1,
+    paid_salary[year > 2021,'Knowles','DEC'] = paid_salary[2023,'Knowles','JAN']*1.1,
+    paid_salary[2023,'Bowie','JAN'] = MAX(paid_salary)[2023,'Adkins', month BETWEEN 'NOV' AND 'DEC'],
+    paid_salary[2022, 'Mercury', month IN ('NOV', 'DEC')] = paid_salary[2022, 'Freidenfelds', CV(month)]*1.5,
+    paid_salary[2022, driver_last_name IS ANY, 'OCT'] = 10000
+)
+ORDER BY year;
+
+

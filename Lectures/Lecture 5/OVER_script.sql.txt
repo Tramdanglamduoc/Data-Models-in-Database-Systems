@@ -1,0 +1,74 @@
+--OVER
+
+CREATE TABLE bus_drivers
+(driver_first_name varchar2(50),
+ driver_last_name varchar2(50) NOT NULL,
+ personal_code varchar2(11) PRIMARY KEY);
+
+CREATE TABLE salaries
+(paid_salary number(6,2),
+ driven_hours number(3),
+ year number(4),
+ month char(3),
+ driver_code varchar2(11),
+ CONSTRAINT pk_s PRIMARY KEY (year, month, driver_code),
+ CONSTRAINT fk_bd_s FOREIGN KEY (driver_code)
+            REFERENCES bus_drivers(personal_code) ON DELETE CASCADE);
+
+CREATE TABLE buses
+(bus_number varchar2(8) PRIMARY KEY,
+ seat_count number(3),
+ availability char(1),
+ cost_per_kilometer number(3,2),
+ bus_rental_per_hour number(4,2)
+);
+
+CREATE TABLE trips
+(trip_number number(3) PRIMARY KEY,
+ departure_time date,
+ duration number(4),
+ destination varchar2(30),
+ kilometers number,
+ driver varchar2(11),
+ bus_number varchar2(8),
+ CONSTRAINT fk_t_bd FOREIGN KEY (driver)
+            REFERENCES bus_drivers(personal_code) ON DELETE SET NULL,
+ CONSTRAINT fk_t_b FOREIGN KEY (bus_number)
+            REFERENCES buses(bus_number) ON DELETE SET NULL);
+
+
+--alternatives using a SELECT subquery
+SELECT s.driver_code, paid_salary, 
+    (SELECT avg(paid_salary) FROM salaries)
+FROM salaries s;
+
+SELECT s.driver_code, paid_salary, 
+    avg(paid_salary) OVER()
+FROM salaries s;
+
+--partition by
+SELECT s.driver_code, paid_salary, 
+    avg(paid_salary) OVER(PARTITION BY year) AS avg_salary_by_year
+FROM salaries s;
+
+--example of a sliding window (windowing)
+SELECT s.driver_code, paid_salary, 
+    avg(paid_salary) OVER(
+                        PARTITION BY year 
+                        ORDER BY paid_salary 
+                        ROWS 2 PRECEDING) AS two_rows_before
+FROM salaries s;
+
+
+--by value ranges - using RANGE
+SELECT s.driver_code, paid_salary, 
+    avg(paid_salary) OVER(
+                        PARTITION BY year 
+                        ORDER BY paid_salary 
+                        RANGE 2 PRECEDING) AS specific_salary_range
+FROM salaries s;
+
+--Ranking with RANK and DENSE_RANK
+SELECT s.driver_code, paid_salary, 
+   RANK() OVER(ORDER BY paid_salary) AS rank
+FROM salaries s;

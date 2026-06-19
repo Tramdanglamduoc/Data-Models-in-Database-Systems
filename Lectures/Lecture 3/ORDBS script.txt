@@ -1,0 +1,186 @@
+
+CREATE TYPE PERSON  AS  OBJECT(
+name        varchar2(20),
+surname     varchar2(30),
+phone       number);
+
+
+CREATE  TABLE  PEOPLE  OF PERSON
+(
+phone PRIMARY KEY
+);
+INSERT  INTO  PEOPLE  VALUES
+   (PERSON('Jane', 'Smith', 2999999));
+
+DECLARE
+    Variable_1  PERSON;
+
+BEGIN
+  Variable_1 := PERSON( Phone => 25858585, name => 'John', surname => 'Smith');
+    
+	INSERT  INTO  PEOPLE  VALUES (Variable_1);
+END;
+
+
+INSERT  INTO  PEOPLE  VALUES  ('Cris', 'Robinson', 2999990);
+
+
+
+SELECT   VALUE(A)
+               FROM       PEOPLE  A
+               WHERE    A.name='Jane';
+               
+SELECT *  FROM  PEOPLE;
+
+UPDATE  PEOPLE  A
+SET  A = PERSON('Andrew', 'Smith', '3333333')
+WHERE  A.surname='Smith' and A.name='Jane';
+
+
+CREATE TYPE PERSON  AS  OBJECT(
+name        varchar2(20),
+surname     varchar2(30),
+phone       number);
+
+
+CREATE  TABLE EMPLOYEES( 
+Id			number(4) Primary key,
+employee 	PERSON,
+position    varchar2(30),
+salary      number(6,2));
+
+INSERT INTO Employees VALUES (101, Person('John', 'Smith','1111111'), 'Bookkeeper', 180.00);
+INSERT INTO Employees VALUES (102, Person('Jane', 'Smith', '2222222'), 'CEO', 200.00);
+
+SELECT * FROM Employees;
+SELECT A.EMPLOYEE  FROM  EMPLOYEES  A;
+SELECT A.EMPLOYEE.NAME FROM Employees A;
+
+UPDATE Employees A 
+SET A.employee.surname='Robinson'
+WHERE id=101;
+
+CREATE TYPE GRADE_TYPE AS VARRAY(3) OF number(2);
+
+CREATE TABLE STUDENTS
+(ID  number,
+GRADES GRADE_TYPE);
+
+INSERT INTO STUDENTS VALUES( 1, GRADE_TYPE(6,7,8));
+
+INSERT INTO STUDENTS VALUES( 2, GRADE_TYPE(6,8,7));
+
+SELECT * FROM STUDENTS;
+
+SELECT * FROM STUDENTS;
+
+SELECT C.* FROM STUDENTS A, TABLE(A.GRADES) C  WHERE A.ID = 1;
+CREATE  TYPE  Object_type_Book  AS  OBJECT (
+   Title      VARCHAR2(50),
+   Author     VARCHAR2(30),
+   Num	     NUMBER(6));
+
+CREATE  TYPE  Table_Books  AS  TABLE  OF  Object_Type_Book;
+
+CREATE  TABLE  Table_Educational_Books  (
+ Speciality             VARCHAR2(20),
+ Student_Course         NUMBER(3),
+ Literature_List        Table_Books)
+   NESTED  TABLE Literature_List STORE  AS  Nested_Table_Books;
+   
+   
+INSERT  INTO  Table_Educational_Books  VALUES  ('Databases', 102,
+     Table_Books(
+Object_Type_Book('Databases', 'J.Koks', 123),
+Object_Type_Book('DB technologies ', 'I.Ozols', 126)
+)
+);
+
+SELECT Literature_List   
+FROM Table_Educational_Books;
+
+Select b.Speciality, p.*
+From Table_Educational_Books b, Table(b.Literature_List) p;
+
+CREATE  TABLE  Employees2 (
+    E_ID        number (5),
+    SURNAME     varchar2 (20),
+    SALARY      number (9, 2),
+    POSITION    varchar2 (20) );
+
+INSERT INTO EMPLOYEES2 VALUES(1, 'Koks', 200.50,'carpenter');
+INSERT INTO EMPLOYEES2 VALUES(2, 'Zars', 180.00, 'secretary');
+
+
+CREATE TYPE ADDRESS_T AS OBJECT(
+   STREET    VARCHAR2(20),
+   A_NUMBER   NUMBER, 
+   CITY  VARCHAR2(20));
+
+CREATE TYPE PERSON_T AS OBJECT ( 
+   P_ID       NUMBER,    
+   SURNAME  VARCHAR2(15),
+   P_NAME     VARCHAR2(15),
+   ADDRESS REF ADDRESS_T );
+
+CREATE TABLE ADDRESSES_TABLE OF ADDRESS_T;
+
+CREATE TABLE PEOPLE1 OF PERSON_T
+(ADDRESS with ROWID scope IS ADDRESSES_TABLE);
+
+INSERT  INTO ADDRESSES_TABLE VALUES(ADDRESS_T('Stabu', 70, 'Riga'));
+
+INSERT INTO PEOPLE1 VALUES(1, 'Koks', 'Juris', NULL);
+
+
+DECLARE
+	adr_ref REF ADDRESS_T;
+BEGIN
+SELECT REF(A) INTO adr_ref
+FROM ADDRESSES_TABLE A
+WHERE A.A_NUMBER = 70;
+
+UPDATE PEOPLE1 A
+SET A.ADDRESS = adr_ref
+WHERE A.P_ID =1;
+END;
+
+SELECT * FROM PEOPLE1;
+
+SELECT DEREF(A.ADDRESS) FROM PEOPLE1 A;
+
+CREATE  TYPE  Student UNDER  Person_T (
+  student_ID         varchar2(10),
+  course              number,
+  s_group               varchar2(5));
+
+
+CREATE OR REPLACE TYPE Employee_Type  AS OBJECT(
+	  E_ID        number (5),
+    SURNAME     varchar2 (20),
+    SALARY      number (9, 2),
+    POSITION    varchar2 (20) );
+    
+    CREATE  VIEW  EMP_VIEW  OF Employee_Type WITH  OBJECT  ID (E_ID) AS
+  SELECT  A.E_ID, A.SURNAME, A.SALARY, A.POSITION
+  FROM  Employees2  A;
+
+
+DROP TABLE ADDRESSES_TABLE;
+DROP TABLE EMPLOYEES;
+DROP TABLE EMPLOYEES2;
+DROP TABLE GREENS;
+DROP TABLE Nested_Table_Books;
+DROP TABLE PAVEMENTS;
+DROP TABLE Table_Educational_Books;
+DROP TABLE PEOPLE;
+DROP TABLE PEOPLE1;
+DROP TABLE STUDENTS;
+DROP TYPE ADDRESS_T;
+DROP TYPE EMPLOYEE_TYPE;
+DROP TYPE GRADE_TYPE;
+DROP TYPE OBJECT_TYPE_BOOK;
+DROP TYPE PERSON;
+DROP TYPE PERSON_T;
+DROP TYPE STUDENT;
+DROP TYPE TABLE_BOOKS;

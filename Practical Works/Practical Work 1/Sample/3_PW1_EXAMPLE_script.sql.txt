@@ -1,0 +1,1043 @@
+REM   Script: GROUP_99_PW1
+REM   PW1 - SAMPLE script
+
+CREATE OR REPLACE TYPE INGREDIENT AS OBJECT ( 
+    -- Define the INGREDIENT object type, representing a medication ingredient. 
+    -- Each ingredient has an ID and NAME for identification and description. 
+    -- INGREDIENT objects are referenced in MEDICATION_INGREDIENT via REF to 
+    -- specify ingredients used in various medications. 
+ 
+    ID      NUMBER,                 -- Unique identifier for the ingredient 
+    NAME    VARCHAR2(100 CHAR)      -- Name of the ingredient 
+); 
+/
+
+CREATE TABLE INGREDIENTS OF INGREDIENT ( 
+    -- Create the INGREDIENTS table based on the INGREDIENT object type, with ID 
+    -- as the primary key. This table stores all ingredients used in the system. 
+    -- Ingredients in this table are linked to medications via MEDICATION_INGREDIENT. 
+ 
+    ID PRIMARY KEY                  -- Primary key to ensure unique ingredients 
+);
+
+BEGIN 
+    -- Insert data into INGREDIENTS table for various test ingredients. 
+    INSERT INTO INGREDIENTS VALUES (INGREDIENT(1, 'Paracetamol')); 
+    INSERT INTO INGREDIENTS VALUES (INGREDIENT(2, 'Ibuprofen')); 
+    INSERT INTO INGREDIENTS VALUES (INGREDIENT(3, 'Amoxicillin')); 
+END; 
+/
+
+SELECT * FROM INGREDIENTS 
+    -- Retrieve all data from the INGREDIENTS table to verify 
+    -- that the data has been inserted correctly. ;
+
+CREATE OR REPLACE TYPE MEDICATION_INGREDIENT AS OBJECT ( 
+    -- Define the MEDICATION_INGREDIENT object type to link an ingredient 
+    -- to a medication. Each entry includes an ID, dosage, and a REF to the 
+    -- corresponding ingredient in INGREDIENTS. 
+ 
+    ID                  NUMBER,       -- Unique identifier for the link entry 
+    DOSAGE_MG           NUMBER,       -- Dosage in milligrams for this ingredient 
+    REF_INGREDIENT      REF INGREDIENT -- REF linking to an ingredient 
+); 
+/
+
+CREATE TYPE MEDICATION_INGREDIENTS AS TABLE OF MEDICATION_INGREDIENT 
+    -- Define a collection type MEDICATION_INGREDIENTS as a table of 
+    -- MEDICATION_INGREDIENT objects, allowing multiple ingredients for one 
+    -- medication. 
+/
+
+CREATE OR REPLACE TYPE MEDICATION AS OBJECT ( 
+    -- Define the MEDICATION object type, representing a general medication. 
+    -- Contains an ID, NAME, DESCRIPTION, and a list of ingredients. 
+    -- MEDICATION serves as a base for specific types, such as injections 
+    -- and oral medications, through inheritance. 
+ 
+    ID              NUMBER,                    -- Unique identifier for medication 
+    NAME            VARCHAR2(100 CHAR),        -- Name of the medication 
+    DESCRIPTION     VARCHAR2(100 CHAR),        -- Description of the medication 
+    INGREDIENT_LIST MEDICATION_INGREDIENTS,    -- Nested table of ingredients 
+     
+    -- MAP function declaration to enable sorting by total ingredient weight 
+    MAP MEMBER FUNCTION get_total_dosage RETURN NUMBER, 
+ 
+    -- General function to get a description of the medication 
+    MEMBER FUNCTION get_description RETURN VARCHAR2 
+ 
+) NOT FINAL; 
+/
+
+CREATE OR REPLACE TYPE INJECTION_MEDICATION UNDER MEDICATION ( 
+    -- Define the INJECTION_MEDICATION subtype under MEDICATION. It includes 
+    -- specific properties like needle size and injection type. 
+    -- This type specializes MEDICATION for injectable formats. 
+ 
+    NEEDLE_SIZE     NUMBER,                     -- Size of the needle 
+    INJECTION_TYPE  VARCHAR2(100 CHAR),         -- Injection type (e.g., IV) 
+ 
+    -- Specific description for injection medication 
+    OVERRIDING MEMBER FUNCTION get_description RETURN VARCHAR2 
+); 
+/
+
+CREATE OR REPLACE TYPE ORAL_MEDICATION UNDER MEDICATION ( 
+    -- Define the ORAL_MEDICATION subtype under MEDICATION, adding attributes 
+    -- for oral medication-specific properties like flavor. 
+ 
+    -- This type is marked as NOT FINAL and NOT INSTANTIABLE: 
+    -- - NOT FINAL: ORAL_MEDICATION allows further subtypes to inherit from it. 
+    -- - NOT INSTANTIABLE: ORAL_MEDICATION cannot be instantiated directly, 
+    --   meaning no objects of this type will be created. Instead, it serves 
+    --   as a template for specific types of oral medications, like tablets 
+    --   and liquids, which add more detailed attributes. 
+     
+    FLAVOR  VARCHAR2(100 CHAR)                  -- Flavor for oral medications 
+ 
+) NOT FINAL NOT INSTANTIABLE; 
+/
+
+CREATE OR REPLACE TYPE TABLET UNDER ORAL_MEDICATION ( 
+    -- Define the TABLET subtype under ORAL_MEDICATION. This subtype is used 
+    -- for tablet medications and includes additional properties specific to 
+    -- tablets, such as tablet size. 
+ 
+    TABLET_SIZE  NUMBER,                         -- Size of the tablet 
+ 
+    -- Specific description for tablet medication 
+    OVERRIDING MEMBER FUNCTION get_description RETURN VARCHAR2 
+); 
+/
+
+CREATE OR REPLACE TYPE LIQUID UNDER ORAL_MEDICATION ( 
+    -- Define the LIQUID subtype under ORAL_MEDICATION. This subtype represents 
+    -- liquid medications and includes additional properties, such as color. 
+ 
+    COLOR        VARCHAR2(50 CHAR),              -- Color of the liquid 
+ 
+    -- Specific description for liquid medication 
+    OVERRIDING MEMBER FUNCTION get_description RETURN VARCHAR2 
+); 
+/
+
+CREATE TABLE MEDICATIONS OF MEDICATION ( 
+    -- Create the MEDICATIONS table based on the MEDICATION object type. This 
+    -- table holds various medications, each with a unique ID and a nested list 
+    -- of ingredients. Ingredients for each medication are stored in a separate 
+    -- table for ingredient lists. 
+ 
+    ID PRIMARY KEY                              -- Primary key for each medication 
+ 
+) NESTED TABLE INGREDIENT_LIST STORE AS MED_INGREDIENTS_TBL 
+    -- Store the nested table of INGREDIENT_LIST for each medication in a  
+    -- separate storage table, MED_INGREDIENTS_TBL. ;
+
+DECLARE 
+    -- This PL/SQL block demonstrates how to create REFs to specific ingredients 
+    -- from the INGREDIENTS table and use them to construct entries in the 
+    -- MEDICATIONS table, representing different types of medications. 
+ 
+    -- First, it retrieves REFs to individual ingredients (Paracetamol, Ibuprofen, 
+    -- and Amoxicillin) by querying their IDs from the INGREDIENTS table. 
+ 
+    -- Using these ingredient REFs, the block then inserts various medications: 
+    -- - A basic pain reliever combining Ibuprofen and Paracetamol. 
+    -- - An injection medication for bacterial infections with Amoxicillin. 
+    -- - A tablet medication form of Paracetamol with additional attributes. 
+    -- - A liquid medication form of Ibuprofen with flavor and color attributes. 
+ 
+    -- This block illustrates how REFs (references) are used to link  
+    -- ingredients directly to specific medications, creating a detailed  
+    -- object-relational model. Notice how inheritance is applied here to allow  
+    -- specialized medication types (like tablets and injections) to have  
+    -- unique properties while still linking back to a common MEDICATION type. 
+    -- This helps model real-world relationships more precisely in the database. 
+     
+    IBUPROFEN_REF  REF INGREDIENT; 
+    PARACETAMOL_REF REF INGREDIENT; 
+    AMOXICILLIN_REF REF INGREDIENT; 
+BEGIN 
+    -- Fetch REFs to specific ingredients by their IDs for use in medications 
+    SELECT REF(I) INTO PARACETAMOL_REF FROM INGREDIENTS I WHERE I.ID = 1; 
+    SELECT REF(I) INTO IBUPROFEN_REF FROM INGREDIENTS I WHERE I.ID = 2; 
+    SELECT REF(I) INTO AMOXICILLIN_REF FROM INGREDIENTS I WHERE I.ID = 3; 
+     
+    -- Insert a basic medication (Pain Reliever) into the MEDICATIONS table 
+    INSERT INTO MEDICATIONS VALUES ( 
+        MEDICATION(101, 'Pain Reliever', 'Used for mild pain relief',  
+                   MEDICATION_INGREDIENTS( 
+                       MEDICATION_INGREDIENT(1, 500, IBUPROFEN_REF), 
+                       MEDICATION_INGREDIENT(2, 250, PARACETAMOL_REF) 
+                   )) 
+    ); 
+     
+    -- Insert an injection medication (Antibiotic Injection) into MEDICATIONS 
+    INSERT INTO MEDICATIONS VALUES ( 
+        INJECTION_MEDICATION(102, 'Antibiotic Injection', 'For bacterial infections', 
+                             MEDICATION_INGREDIENTS( 
+                                 MEDICATION_INGREDIENT(3, 1000, AMOXICILLIN_REF) 
+                             ), 
+                             25, 'Intravenous') 
+    ); 
+     
+    -- Insert an oral medication in tablet form (Paracetamol Tablet) 
+    INSERT INTO MEDICATIONS VALUES ( 
+        TABLET(103, 'Paracetamol Tablet', 'Pain reliever and fever reducer', 
+               MEDICATION_INGREDIENTS( 
+                   MEDICATION_INGREDIENT(4, 500, PARACETAMOL_REF) 
+               ), 
+               'Orange', 20) 
+    ); 
+     
+    -- Insert an oral medication in liquid form (Ibuprofen Syrup) 
+    INSERT INTO MEDICATIONS VALUES ( 
+        LIQUID(104, 'Ibuprofen Syrup', 'Anti-inflammatory and pain relief', 
+               MEDICATION_INGREDIENTS( 
+                   MEDICATION_INGREDIENT(5, 100, IBUPROFEN_REF) 
+               ), 
+               'Apple', 'Red') 
+    ); 
+END; 
+/
+
+SELECT  
+    -- This query retrieves all detailed information from the MEDICATIONS table, 
+    -- including nested ingredients and specific attributes for each type of medication. 
+ 
+    -- The query uses the `TABLE` function to access data in the `INGREDIENT_LIST` 
+    -- nested table and conditional expressions to display type-specific attributes. 
+ 
+    -- For students: 
+    -- - The `TABLE()` function helps un-nest the `INGREDIENT_LIST` so that each 
+    --   ingredient can be displayed on a separate row. 
+    -- - Conditional functions like `CASE` help display data only for specific  
+    --   subtypes, such as `INJECTION_MEDICATION` and `TABLET`. 
+    -- - This approach shows how to handle object tables with nested and inherited  
+    --   structures in Oracle, displaying all relevant details in a single query. 
+ 
+    M.ID AS MEDICATION_ID,                             -- Unique ID for each medication 
+    M.NAME AS MEDICATION_NAME,                         -- Name of the medication 
+    M.DESCRIPTION,                                     -- Description of the medication 
+    I.ID AS INGREDIENT_ID,                             -- ID of each ingredient in the medication 
+    I.DOSAGE_MG AS INGREDIENT_DOSAGE,                  -- Dosage (mg) of each ingredient 
+    DEREF(I.REF_INGREDIENT).NAME AS INGREDIENT_NAME,   -- Name of the ingredient, dereferenced 
+     
+    -- Display flavor attribute only for ORAL_MEDICATION subtype 
+    CASE  
+        WHEN VALUE(M) IS OF (ORAL_MEDICATION) THEN  
+            TREAT(VALUE(M) AS ORAL_MEDICATION).FLAVOR  
+    END AS FLAVOR, 
+     
+    -- Display needle size and injection type for INJECTION_MEDICATION subtype 
+    CASE  
+        WHEN VALUE(M) IS OF (INJECTION_MEDICATION) THEN  
+            TREAT(VALUE(M) AS INJECTION_MEDICATION).NEEDLE_SIZE  
+    END AS NEEDLE_SIZE, 
+     
+    CASE  
+        WHEN VALUE(M) IS OF (INJECTION_MEDICATION) THEN  
+            TREAT(VALUE(M) AS INJECTION_MEDICATION).INJECTION_TYPE  
+    END AS INJECTION_TYPE, 
+     
+    -- Display tablet size for TABLET subtype 
+    CASE  
+        WHEN VALUE(M) IS OF (TABLET) THEN  
+            TREAT(VALUE(M) AS TABLET).TABLET_SIZE  
+    END AS TABLET_SIZE, 
+     
+    -- Display color attribute for LIQUID subtype 
+    CASE  
+        WHEN VALUE(M) IS OF (LIQUID) THEN  
+            TREAT(VALUE(M) AS LIQUID).COLOR  
+    END AS COLOR 
+ 
+FROM  
+    MEDICATIONS M, 
+    TABLE(M.INGREDIENT_LIST) I  -- Un-nest the INGREDIENT_LIST to access each ingredient 
+ 
+ORDER BY  
+    M.ID, I.ID    -- Order by medication and ingredient IDs for clarity ;
+
+CREATE OR REPLACE TYPE PATIENT AS OBJECT( 
+    -- Define the PATIENT object type with a Social Security Number (SSN) 
+    -- and a member function get_prescriptions that returns a SYS_REFCURSOR 
+    -- (intended to retrieve a list of prescriptions for the patient). 
+ 
+    -- Social Security Number of the patient 
+    SSN VARCHAR2(50 CHAR), 
+    -- Function to fetch a cursor (list of prescriptions) for this patient 
+    MEMBER FUNCTION GET_PRESCRIPTIONS RETURN SYS_REFCURSOR 
+); 
+/
+
+CREATE OR REPLACE TYPE DOCTOR AS OBJECT( 
+    -- Define the DOCTOR object type with a license number, salary, 
+    -- and member functions for retrieving salary and prescriptions, as well 
+    -- as a procedure to add a prescription. 
+ 
+    LICENCE_NO VARCHAR2(20 CHAR),               -- Doctor's license number 
+    SALARY     NUMBER(10, 2),                   -- Doctor's salary 
+     
+    -- Function to return the doctor's salary 
+    MEMBER FUNCTION GET_SALARY RETURN NUMBER, 
+    -- Function to fetch a cursor (list of prescriptions) for this doctor 
+    MEMBER FUNCTION GET_PRESCRIPTIONS RETURN SYS_REFCURSOR 
+); 
+/
+
+CREATE OR REPLACE TYPE PERSON AS OBJECT( 
+    -- Define the PERSON object type, representing a general person with attributes 
+    -- such as ID, name, and date of birth. The type also contains attributes 
+    -- for patient and doctor data (using embedded object types) and functions 
+    -- for calculating age and retrieving prescriptions. 
+ 
+    ID              NUMBER,                     -- Unique identifier for the person 
+    NAME            VARCHAR2(50 CHAR),          -- First name of the person 
+    SURNAME         VARCHAR2(50 CHAR),          -- Last name of the person 
+    DATE_OF_BIRTH   DATE,                       -- Date of birth of the person 
+     
+    PATIENT_DATA    PATIENT,                    -- Data if the person is a patient 
+    DOCTOR_DATA     DOCTOR,                     -- Data if the person is a doctor 
+     
+    -- Function to calculate and return the person's age 
+    MEMBER FUNCTION GET_AGE RETURN NUMBER, 
+ 
+    -- Function to open a cursor that retrieves a list of prescriptions  
+    -- associated with this person, filtering based on their role (patient, doctor). 
+    MEMBER FUNCTION FETCH_PRESCRIPTIONS(pers_type IN VARCHAR2) RETURN SYS_REFCURSOR, 
+     
+    -- Function to directly retrieve a list of prescriptions associated with this person  
+    -- as a convenient, high-level interface for calling `FETCH_PRESCRIPTIONS`. 
+    MEMBER FUNCTION GET_PRESCRIPTIONS RETURN SYS_REFCURSOR 
+); 
+/
+
+CREATE TABLE PEOPLE OF PERSON( 
+    -- Create a table PEOPLE using the PERSON object type. 
+    -- The table's primary key is the ID attribute from the PERSON type, 
+    -- ensuring each person has a unique identifier. 
+ 
+    ID PRIMARY KEY 
+);
+
+BEGIN 
+ 
+-- Insert a `Person` with only `PATIENT_DATA` 
+INSERT INTO PEOPLE VALUES ( 
+    PERSON( 
+        ID => 1, 
+        NAME => 'John', 
+        SURNAME => 'Doe', 
+        DATE_OF_BIRTH => TO_DATE('1985-06-15', 'YYYY-MM-DD'), 
+        PATIENT_DATA => PATIENT('123-45-6789'),  -- Only PATIENT_DATA populated 
+        DOCTOR_DATA => NULL                      -- No DOCTOR_DATA 
+    ) 
+); 
+ 
+-- Insert a `Person` with only `DOCTOR_DATA` 
+INSERT INTO PEOPLE VALUES ( 
+    PERSON( 
+        ID => 2, 
+        NAME => 'Alice', 
+        SURNAME => 'Smith', 
+        DATE_OF_BIRTH => TO_DATE('1978-09-22', 'YYYY-MM-DD'), 
+        PATIENT_DATA => NULL,                    -- No PATIENT_DATA 
+        DOCTOR_DATA => DOCTOR('D-987654', 85000) -- Only DOCTOR_DATA populated 
+    ) 
+); 
+ 
+-- Insert a `Person` with both `PATIENT_DATA` and `DOCTOR_DATA` 
+INSERT INTO PEOPLE VALUES ( 
+    PERSON( 
+        ID => 3, 
+        NAME => 'Emma', 
+        SURNAME => 'Jones', 
+        DATE_OF_BIRTH => TO_DATE('1990-11-07', 'YYYY-MM-DD'), 
+        PATIENT_DATA => PATIENT('321-54-9876'),  -- PATIENT_DATA populated 
+        DOCTOR_DATA => DOCTOR('D-123456', 95000) -- DOCTOR_DATA populated 
+    ) 
+); 
+ 
+-- Insert a `Person` with neither `PATIENT_DATA` nor `DOCTOR_DATA` 
+INSERT INTO PEOPLE VALUES ( 
+    PERSON( 
+        ID => 4, 
+        NAME => 'Michael', 
+        SURNAME => 'Brown', 
+        DATE_OF_BIRTH => TO_DATE('1990-11-08', 'YYYY-MM-DD'), 
+        PATIENT_DATA => NULL,                    -- No PATIENT_DATA 
+        DOCTOR_DATA => NULL                      -- No DOCTOR_DATA 
+    ) 
+); 
+ 
+-- Insert another `Person` with only `PATIENT_DATA` 
+INSERT INTO PEOPLE VALUES ( 
+    PERSON( 
+        ID => 5, 
+        NAME => 'Sarah', 
+        SURNAME => 'Wilson', 
+        DATE_OF_BIRTH => TO_DATE('1990-11-09', 'YYYY-MM-DD'), 
+        PATIENT_DATA => PATIENT('555-22-3333'),  -- Only PATIENT_DATA populated 
+        DOCTOR_DATA => NULL                      -- No DOCTOR_DATA 
+    ) 
+); 
+ 
+END; 
+/
+
+SELECT * FROM PEOPLE 
+    -- Retrieve data from PEOPLE 
+    -- BAD EXAMPLE!!! Details are not displayed! ;
+
+SELECT 
+    -- This query retrieves detailed information from the PEOPLE table. 
+    -- It displays basic details (e.g., ID, name, and date of birth) along  
+    -- with specific details from the `PATIENT_DATA` and `DOCTOR_DATA`  
+    -- subtypes if they are populated. 
+    -- 
+    -- Explanation for students: 
+    -- - `CASE` expressions with `IS OF` are used to check if `PATIENT_DATA` 
+    --   or `DOCTOR_DATA` are populated, allowing conditional retrieval  
+    --   of attributes specific to each subtype. 
+    -- - The query uses `TREAT` to access attributes within subtypes  
+    --   like `SSN` for patients and `LICENCE_NO` for doctors. 
+ 
+    P.ID AS PERSON_ID,                            -- Unique ID for the person 
+    P.NAME AS FIRST_NAME,                         -- First name of the person 
+    P.SURNAME AS LAST_NAME,                       -- Last name of the person 
+    P.DATE_OF_BIRTH,                              -- Date of birth of the person 
+ 
+    -- Retrieve SSN if the person has PATIENT_DATA populated 
+    CASE  
+        WHEN P.PATIENT_DATA IS NOT NULL THEN  
+            TREAT(P.PATIENT_DATA AS PATIENT).SSN 
+    END AS PATIENT_SSN, 
+     
+    -- Retrieve license number and salary if the person has DOCTOR_DATA populated 
+    CASE  
+        WHEN P.DOCTOR_DATA IS NOT NULL THEN  
+            TREAT(P.DOCTOR_DATA AS DOCTOR).LICENCE_NO  
+    END AS DOCTOR_LICENCE_NO, 
+ 
+    CASE  
+        WHEN P.DOCTOR_DATA IS NOT NULL THEN  
+            TREAT(P.DOCTOR_DATA AS DOCTOR).SALARY  
+    END AS DOCTOR_SALARY 
+     
+FROM  
+    PEOPLE P 
+ORDER BY  
+    P.ID;
+
+CREATE OR REPLACE TYPE PRESCRIPTION AS OBJECT ( 
+    -- Define the PRESCRIPTION object type, representing a medical prescription. 
+    -- Each prescription includes a prescription number, date, status, and 
+    -- REFs to the patient, doctor, and medication involved. 
+ 
+    NUM             NUMBER,              -- Unique prescription number 
+    DAT             DATE,                -- Date of the prescription 
+    STATUS          VARCHAR2(50 CHAR),   -- Status (e.g., 'Active', 'Completed') 
+    REF_PATIENT     REF PERSON,          -- REF to patient in PEOPLE 
+    REF_DOCTOR      REF PERSON,          -- REF to doctor in PEOPLE 
+    REF_MEDICATION  REF MEDICATION,      -- REF to medication in MEDICATIONS 
+ 
+    -- The procedure to display the main details of a prescription 
+    MEMBER PROCEDURE SHOW, 
+    -- The procedure to create a new prescription 
+    STATIC PROCEDURE ADD_PRESCRIPTION( 
+        p_patient_id   IN NUMBER, 
+        p_doctor_id    IN NUMBER, 
+        p_medication_id IN NUMBER 
+    ), 
+    -- ORDER method to compare two PRESCRIPTION objects 
+    ORDER MEMBER FUNCTION compare(other PRESCRIPTION) RETURN INTEGER 
+); 
+/
+
+CREATE TABLE PRESCRIPTIONS OF PRESCRIPTION ( 
+    -- Create the PRESCRIPTIONS table based on the PRESCRIPTION object type. 
+     
+    NUM PRIMARY KEY, 
+    DAT NOT NULL, 
+    STATUS NOT NULL, 
+    REF_PATIENT NOT NULL, 
+    REF_DOCTOR NOT NULL, 
+    REF_MEDICATION NOT NULL 
+);
+
+DECLARE 
+    -- Inserting data 
+ 
+    -- Declare variables to store REFs to patient, doctor, and medication 
+    PATIENT_REF   REF PERSON; 
+    DOCTOR_REF    REF PERSON; 
+    MEDICATION_REF REF MEDICATION; 
+BEGIN 
+    -- Fetch REFs to specific patient, doctor in PEOPLE and medication in MEDICATIONS 
+    SELECT REF(P) INTO PATIENT_REF FROM PEOPLE P WHERE P.ID = 1; 
+    SELECT REF(P) INTO DOCTOR_REF FROM PEOPLE P WHERE P.ID = 2; 
+    SELECT REF(M) INTO MEDICATION_REF FROM MEDICATIONS M WHERE M.ID = 101; 
+     
+    -- Insert a prescription for a patient by a doctor with a medication 
+    INSERT INTO PRESCRIPTIONS VALUES ( 
+        PRESCRIPTION(201, TO_DATE('2024-06-30', 'YYYY-MM-DD'), 'Active', 
+                     PATIENT_REF, DOCTOR_REF, MEDICATION_REF) 
+    ); 
+     
+    -- Fetch another medication REF for a second prescription 
+    SELECT REF(M) INTO MEDICATION_REF FROM MEDICATIONS M WHERE M.ID = 102; 
+    INSERT INTO PRESCRIPTIONS VALUES ( 
+        PRESCRIPTION(202, TO_DATE('2024-10-15', 'YYYY-MM-DD'), 'Completed', 
+                     PATIENT_REF, DOCTOR_REF, MEDICATION_REF) 
+    ); 
+END; 
+/
+
+DECLARE 
+    -- Inserting data 
+ 
+    -- Declare variables to store REFs to another patient, doctor, and medication 
+    PATIENT_REF    REF PERSON; 
+    DOCTOR_REF     REF PERSON; 
+    MEDICATION_REF REF MEDICATION; 
+BEGIN 
+    -- Fetch REFs for another patient, doctor, and medication 
+    SELECT REF(P) INTO PATIENT_REF FROM PEOPLE P WHERE P.ID = 3; 
+    SELECT REF(P) INTO DOCTOR_REF FROM PEOPLE P WHERE P.ID = 2; 
+    SELECT REF(M) INTO MEDICATION_REF FROM MEDICATIONS M WHERE M.ID = 103; 
+     
+    -- Insert a prescription for a different patient-medication combination 
+    INSERT INTO PRESCRIPTIONS VALUES ( 
+        PRESCRIPTION(203, TO_DATE('2024-06-30', 'YYYY-MM-DD'), 'Pending', 
+                     PATIENT_REF, DOCTOR_REF, MEDICATION_REF) 
+    ); 
+END; 
+/
+
+SELECT 
+    -- This query retrieves detailed information from the PRESCRIPTIONS table. 
+    -- It displays the prescription's number, date, status, and related data 
+    -- by following REFs to fetch the associated patient's, doctor's, and  
+    -- medication's names. 
+    -- 
+    -- Explanation for students: 
+    -- - `DEREF` is used to dereference the REF columns (e.g., REF_PATIENT) to  
+    --   access attributes of the referenced objects (like PERSON's NAME). 
+    -- - Aliases like `PAT` and `DOC` help organize the query, making it clear  
+    --   where each field is coming from. 
+ 
+    PRES.NUM AS PRESCRIPTION_NUMBER,           -- Prescription ID number 
+    PRES.DAT AS PRESCRIPTION_DATE,             -- Date of the prescription 
+    PRES.STATUS AS PRESCRIPTION_STATUS,        -- Status of the prescription (e.g., 'Active') 
+ 
+    -- Fetch the patient's name by dereferencing the REF_PATIENT 
+    DEREF(PRES.REF_PATIENT).NAME AS PATIENT_NAME,   -- Patient's first name 
+    DEREF(PRES.REF_PATIENT).SURNAME AS PATIENT_SURNAME, -- Patient's surname 
+     
+    -- Fetch the doctor's name by dereferencing the REF_DOCTOR 
+    DEREF(PRES.REF_DOCTOR).NAME AS DOCTOR_NAME,     -- Doctor's first name 
+    DEREF(PRES.REF_DOCTOR).SURNAME AS DOCTOR_SURNAME, -- Doctor's surname 
+     
+    -- Fetch the medication name by dereferencing the REF_MEDICATION 
+    DEREF(PRES.REF_MEDICATION).NAME AS MEDICATION_NAME -- Medication name 
+FROM  
+    PRESCRIPTIONS PRES 
+ORDER BY  
+    PRES.NUM  -- Order results by prescription number for easier reading ;
+
+CREATE OR REPLACE TYPE BODY PRESCRIPTION AS 
+ 
+    -- The SHOW procedure displays the main details of a prescription, 
+    -- including prescription number, date, status, and the names of 
+    -- the patient, doctor, and medication if available. 
+ 
+    MEMBER PROCEDURE SHOW IS 
+        V_PATIENT_NAME VARCHAR2(100); 
+        V_DOCTOR_NAME VARCHAR2(100); 
+        V_MEDICATION_NAME VARCHAR2(100); 
+    BEGIN 
+        -- Retrieve names for patient, doctor, and medication if available 
+        SELECT P.NAME || ' ' || P.SURNAME INTO V_PATIENT_NAME 
+        FROM PEOPLE P WHERE REF(P) = SELF.REF_PATIENT; 
+ 
+        SELECT P.NAME || ' ' || P.SURNAME INTO V_DOCTOR_NAME 
+        FROM PEOPLE P WHERE REF(P) = SELF.REF_DOCTOR; 
+ 
+        SELECT M.NAME INTO V_MEDICATION_NAME 
+        FROM MEDICATIONS M WHERE REF(M) = SELF.REF_MEDICATION; 
+ 
+        -- Display prescription details 
+        DBMS_OUTPUT.PUT_LINE('Prescription Number: ' || SELF.NUM); 
+        DBMS_OUTPUT.PUT_LINE('Date: ' || TO_CHAR(SELF.DAT, 'YYYY-MM-DD')); 
+        DBMS_OUTPUT.PUT_LINE('Status: ' || SELF.STATUS); 
+        DBMS_OUTPUT.PUT_LINE('Patient: ' || NVL(V_PATIENT_NAME, 'Unknown')); 
+        DBMS_OUTPUT.PUT_LINE('Doctor: ' || NVL(V_DOCTOR_NAME, 'Unknown')); 
+        DBMS_OUTPUT.PUT_LINE('Medication: ' || NVL(V_MEDICATION_NAME, 'Unknown')); 
+        DBMS_OUTPUT.PUT_LINE('--------------------------'); 
+    END SHOW; 
+ 
+ 
+    STATIC PROCEDURE ADD_PRESCRIPTION( 
+     
+        -- Procedure ADD_PRESCRIPTION adds a new prescription record to the system. 
+        -- Parameters: IDs of the patient, doctor, and medication involved. 
+        -- Validates: 
+        --   - Patient must have PATIENT_DATA (indicating they are a patient). 
+        --   - Doctor must have DOCTOR_DATA (indicating they are a doctor). 
+        -- Auto-generates the next prescription number based on the max existing. 
+        -- Defaults: 
+        --   - Sets current date for prescription date. 
+        --   - Sets status to 'Active'. 
+        -- Retrieves REFs for patient, doctor, and medication by IDs. 
+        -- Raises an error if validations fail or records are missing. 
+ 
+        p_patient_id IN NUMBER,     -- Patient ID in PEOPLE 
+        p_doctor_id IN NUMBER,      -- Doctor ID in PEOPLE 
+        p_medication_id IN NUMBER   -- Medication ID in MEDICATIONS 
+    ) IS 
+        v_patient_ref REF PERSON; 
+        v_doctor_ref REF PERSON; 
+        v_medication_ref REF MEDICATION; 
+        v_num NUMBER; 
+    BEGIN 
+        -- Check if the patient exists and has PATIENT_DATA 
+        SELECT REF(p) INTO v_patient_ref 
+        FROM PEOPLE p 
+        WHERE p.ID = p_patient_id AND p.PATIENT_DATA IS NOT NULL; 
+ 
+        -- Check if the doctor exists and has DOCTOR_DATA 
+        SELECT REF(p) INTO v_doctor_ref 
+        FROM PEOPLE p 
+        WHERE p.ID = p_doctor_id AND p.DOCTOR_DATA IS NOT NULL; 
+ 
+        -- Check if the medication exists 
+        SELECT REF(m) INTO v_medication_ref 
+        FROM MEDICATIONS m 
+        WHERE m.ID = p_medication_id; 
+ 
+        -- Generate the next prescription number by finding the max current value 
+        SELECT NVL(MAX(NUM), 0) + 1 INTO v_num FROM PRESCRIPTIONS; 
+ 
+        -- Insert the new prescription 
+        INSERT INTO PRESCRIPTIONS VALUES ( 
+            PRESCRIPTION(v_num, SYSDATE, 'Active', 
+                         v_patient_ref, v_doctor_ref, v_medication_ref) 
+        ); 
+ 
+        DBMS_OUTPUT.PUT_LINE('Prescription ' || v_num || ' added successfully.'); 
+    EXCEPTION 
+        WHEN NO_DATA_FOUND THEN 
+            DBMS_OUTPUT.PUT_LINE('Error: Patient or Doctor not found, or data is missing.'); 
+        WHEN OTHERS THEN 
+            DBMS_OUTPUT.PUT_LINE('Error occurred: ' || SQLERRM); 
+    END ADD_PRESCRIPTION; 
+ 
+ 
+    -- ORDER method to compare this PRESCRIPTION with another 
+    ORDER MEMBER FUNCTION compare(other PRESCRIPTION) RETURN INTEGER IS 
+    BEGIN 
+        -- Compare dates first 
+        IF SELF.DAT < other.DAT THEN 
+            RETURN -1; 
+        ELSIF SELF.DAT > other.DAT THEN 
+            RETURN 1; 
+        ELSE 
+            -- If dates are the same, compare by status 
+            IF SELF.STATUS < other.STATUS THEN 
+                RETURN -1; 
+            ELSIF SELF.STATUS > other.STATUS THEN 
+                RETURN 1; 
+            ELSE 
+                RETURN 0;  -- They are equal 
+            END IF; 
+        END IF; 
+    END compare; 
+END; 
+/
+
+DECLARE 
+    -- This anonymous PL/SQL block is intended to test the SHOW procedure 
+    -- of the PRESCRIPTION object. It retrieves a specific prescription 
+    -- from the PRESCRIPTIONS table and displays its details. 
+ 
+    V_PRESCRIPTION PRESCRIPTION;  -- Variable to hold a prescription object 
+BEGIN 
+    -- Retrieve a specific prescription from the PRESCRIPTIONS table 
+    SELECT VALUE(P) INTO V_PRESCRIPTION 
+    FROM PRESCRIPTIONS P 
+    WHERE P.NUM = 201;  -- Replace with the actual prescription number to test 
+ 
+    -- Call the SHOW procedure to display the prescription details 
+    V_PRESCRIPTION.SHOW; 
+END; 
+/
+
+BEGIN 
+    -- Adds prescription for patient ID 1, doctor ID 2, medication ID 104 
+    PRESCRIPTION.ADD_PRESCRIPTION(1, 2, 104); 
+    -- Attempts to add a prescription and checks if exceptions handle invalid data 
+    PRESCRIPTION.ADD_PRESCRIPTION(4, 3, 104); 
+END; 
+/
+
+SELECT  
+    -- Verify the insertion by selecting the latest prescription with detailed information 
+ 
+    NUM AS Prescription_Number, 
+    TO_CHAR(DAT, 'YYYY-MM-DD') AS Prescription_Date, 
+    STATUS AS Prescription_Status, 
+    DEREF(REF_PATIENT).ID AS Patient_ID,       -- Patient's ID from PEOPLE 
+    DEREF(REF_PATIENT).NAME || ' ' || DEREF(REF_PATIENT).SURNAME AS Patient_Name, 
+    DEREF(REF_DOCTOR).ID AS Doctor_ID,         -- Doctor's ID from PEOPLE 
+    DEREF(REF_DOCTOR).NAME || ' ' || DEREF(REF_DOCTOR).SURNAME AS Doctor_Name, 
+    DEREF(REF_MEDICATION).ID AS Medication_ID, -- Medication's ID from MEDICATIONS 
+    DEREF(REF_MEDICATION).NAME AS Medication_Name 
+FROM PRESCRIPTIONS;
+
+SELECT 
+    -- This query retrieves prescription objects from PRESCRIPTIONS 
+    -- and orders them using the custom ORDER method in the PRESCRIPTION type. 
+    -- Ordering prioritizes prescription date (DAT) and falls back to STATUS. 
+    VALUE(p) AS Prescription_Object, p.num, p.dat, p.status 
+FROM PRESCRIPTIONS p 
+ORDER BY VALUE(p);
+
+CREATE OR REPLACE TYPE BODY PERSON AS 
+    -- Complete body for the PERSON type with all functions 
+ 
+    -- Function to handle the common logic for retrieving prescriptions 
+    -- based on the reference type (patient, doctor, or any). 
+     
+    MEMBER FUNCTION FETCH_PRESCRIPTIONS(pers_type IN VARCHAR2) 
+    RETURN SYS_REFCURSOR IS 
+        pres_cursor SYS_REFCURSOR; 
+    BEGIN 
+        -- Validate the input to prevent errors 
+        IF pers_type NOT IN ('patient', 'doctor', 'any') THEN 
+            RAISE_APPLICATION_ERROR(-20001, 'Invalid pers_type value'); 
+        END IF; 
+ 
+        -- Open the cursor based on the type specified 
+        OPEN pres_cursor FOR 
+            SELECT VALUE(pres) 
+            FROM PRESCRIPTIONS pres 
+            WHERE (pers_type = 'patient' OR pers_type = 'any') AND 
+                  pres.REF_PATIENT = (SELECT REF(p) FROM PEOPLE p WHERE p.ID = SELF.ID) 
+                  OR 
+                  (pers_type = 'doctor' OR pers_type = 'any') AND 
+                  pres.REF_DOCTOR = (SELECT REF(p) FROM PEOPLE p WHERE p.ID = SELF.ID); 
+ 
+        RETURN pres_cursor; 
+    END FETCH_PRESCRIPTIONS; 
+ 
+ 
+    -- Main get_prescriptions function in PERSON type 
+    MEMBER FUNCTION GET_PRESCRIPTIONS RETURN SYS_REFCURSOR IS 
+    BEGIN 
+        RETURN FETCH_PRESCRIPTIONS('any'); 
+    END GET_PRESCRIPTIONS; 
+ 
+ 
+    -- Function to calculate the age of the person 
+    -- by comparing the current date with the birth date 
+     
+    MEMBER FUNCTION GET_AGE RETURN NUMBER IS 
+        AGE NUMBER;  -- Variable to store the calculated age in years 
+    BEGIN 
+        -- Check if the person has already had their birthday this year. 
+        -- If yes, calculate the age as the difference in years; 
+        -- if not, subtract one year to account for the upcoming birthday. 
+     
+        IF TO_CHAR(SYSDATE, 'MMDD') >= TO_CHAR(DATE_OF_BIRTH, 'MMDD') THEN 
+            -- Birthday has occurred this year, so use the direct year difference 
+            AGE := EXTRACT(YEAR FROM SYSDATE) -  
+                          EXTRACT(YEAR FROM DATE_OF_BIRTH); 
+        ELSE 
+            -- Birthday hasn't occurred yet this year, so subtract 
+            -- one from the year difference 
+            AGE := EXTRACT(YEAR FROM SYSDATE) -  
+                          EXTRACT(YEAR FROM DATE_OF_BIRTH) - 1; 
+        END IF; 
+     
+        RETURN AGE;  -- Return the calculated age 
+    END GET_AGE; 
+END; 
+/
+
+SELECT 
+    -- Test the function get_age() to verify it calculates 
+    -- the person's age accurately 
+     
+    P.ID, P.NAME, P.SURNAME, P.DATE_OF_BIRTH, P.GET_AGE() AS AGE 
+ 
+FROM PEOPLE P ;
+
+DECLARE 
+    -- This anonymous PL/SQL block tests the GET_PRESCRIPTIONS function for a specific  
+    -- person by retrieving all related prescriptions. It opens a cursor to fetch each  
+    -- prescription object associated with the person, then calls the SHOW method  
+    -- on each prescription to display its details. 
+ 
+    -- Cursor to store the result set of prescriptions as objects 
+    PRES_CURSOR SYS_REFCURSOR; 
+    V_PRESCRIPTION PRESCRIPTION;  -- Variable to hold a prescription object 
+ 
+BEGIN 
+    -- Get prescriptions for a specific person by opening a cursor that fetches 
+    -- prescription objects associated with that person. 
+    SELECT P.GET_PRESCRIPTIONS() INTO PRES_CURSOR FROM PEOPLE P WHERE P.ID = 1; 
+ 
+    DBMS_OUTPUT.PUT_LINE('--------------------------'); 
+     
+    -- Fetch and display each prescription object’s details using SHOW 
+    LOOP 
+        FETCH PRES_CURSOR INTO V_PRESCRIPTION; 
+        EXIT WHEN PRES_CURSOR%NOTFOUND; 
+ 
+        -- Call the SHOW procedure for the fetched prescription object 
+        V_PRESCRIPTION.SHOW; 
+    END LOOP; 
+ 
+    CLOSE PRES_CURSOR;  -- Close the cursor after processing all records 
+END; 
+/
+
+CREATE OR REPLACE TYPE BODY DOCTOR AS 
+ 
+    -- Calls the centralized FETCH_PRESCRIPTIONS function in PERSON, 
+    -- specifying "doctor" to fetch only doctor-related prescriptions.     
+ 
+    MEMBER FUNCTION GET_PRESCRIPTIONS RETURN SYS_REFCURSOR IS 
+        person_ref REF PERSON;        -- Reference to the containing PERSON 
+        person_obj PERSON;            -- Holds the dereferenced PERSON object 
+        pres_cursor SYS_REFCURSOR;    -- Cursor for prescriptions 
+    BEGIN 
+        -- Find the containing PERSON instance for this DOCTOR 
+        SELECT REF(p) INTO person_ref 
+        FROM PEOPLE p 
+        WHERE p.DOCTOR_DATA = SELF; 
+ 
+        -- Dereference the REF to obtain the actual PERSON object 
+        SELECT DEREF(person_ref) INTO person_obj FROM DUAL; 
+ 
+        -- Call FETCH_PRESCRIPTIONS using the dereferenced PERSON object 
+        pres_cursor := person_obj.FETCH_PRESCRIPTIONS('doctor'); 
+         
+        -- Return the cursor with prescription results 
+        RETURN pres_cursor; 
+    END GET_PRESCRIPTIONS; 
+     
+     
+    -- Function to retrieve the salary of the doctor 
+ 
+    MEMBER FUNCTION get_salary RETURN NUMBER IS 
+    BEGIN 
+        -- Access the salary attribute of the current DOCTOR object 
+        RETURN SELF.SALARY;  
+    END get_salary; 
+ 
+END; 
+/
+
+DECLARE 
+    -- This block tests the GET_PRESCRIPTIONS function for a doctor by fetching 
+    -- all associated prescriptions and displaying details using the SHOW procedure. 
+     
+    pres_cursor SYS_REFCURSOR;      -- Cursor to hold the result set of prescriptions 
+    v_prescription PRESCRIPTION;    -- Variable to hold each prescription object 
+BEGIN 
+    -- Retrieve prescriptions associated with the doctor (for example, with ID = 2) 
+    SELECT p.DOCTOR_DATA.GET_PRESCRIPTIONS() INTO pres_cursor  
+    FROM PEOPLE p  
+    WHERE p.ID = 2 AND p.DOCTOR_DATA IS NOT NULL; 
+     
+    -- Loop through each prescription and display details using SHOW 
+    LOOP 
+        FETCH pres_cursor INTO v_prescription; 
+        EXIT WHEN pres_cursor%NOTFOUND; 
+         
+        -- Call the SHOW procedure on each prescription object 
+        v_prescription.SHOW; 
+    END LOOP; 
+ 
+    -- Close the cursor after processing all prescriptions 
+    CLOSE pres_cursor; 
+END; 
+/
+
+SELECT 
+    -- Query to retrieve the salary of all doctors 
+     
+    p.id, p.DOCTOR_DATA.licence_no, p.DOCTOR_DATA.GET_SALARY() AS Doctor_Salary 
+FROM PEOPLE p 
+WHERE p.DOCTOR_DATA is not null;
+
+CREATE OR REPLACE TYPE BODY PATIENT AS 
+ 
+    -- Calls the centralized FETCH_PRESCRIPTIONS function in PERSON, 
+    -- specifying "patient" to fetch only patient-related prescriptions.     
+ 
+    MEMBER FUNCTION GET_PRESCRIPTIONS RETURN SYS_REFCURSOR IS 
+        person_ref REF PERSON;        -- Reference to the containing PERSON 
+        person_obj PERSON;            -- Holds the dereferenced PERSON object 
+        pres_cursor SYS_REFCURSOR;    -- Cursor for prescriptions 
+    BEGIN 
+        -- Find the containing PERSON instance for this DOCTOR 
+        SELECT REF(p) INTO person_ref 
+        FROM PEOPLE p 
+        WHERE p.PATIENT_DATA = SELF; 
+ 
+        -- Dereference the REF to obtain the actual PERSON object 
+        SELECT DEREF(person_ref) INTO person_obj FROM DUAL; 
+ 
+        -- Call FETCH_PRESCRIPTIONS using the dereferenced PERSON object 
+        pres_cursor := person_obj.FETCH_PRESCRIPTIONS('patient'); 
+         
+        -- Return the cursor with prescription results 
+        RETURN pres_cursor; 
+    END GET_PRESCRIPTIONS; 
+ 
+END; 
+/
+
+DECLARE 
+    -- This test block is designed to verify the GET_PRESCRIPTIONS function in the 
+    -- PATIENT object type. It retrieves all prescriptions associated with a specific 
+    -- patient and uses the SHOW procedure to display each prescription`s details. 
+     
+    pres_cursor SYS_REFCURSOR;     -- Cursor to store the result set of prescriptions 
+    v_prescription PRESCRIPTION;   -- Variable to hold a prescription object 
+    patient_ref PATIENT;           -- Reference to a specific patient object 
+BEGIN 
+    -- Retrieve a specific patient from the PEOPLE table 
+    SELECT p.PATIENT_DATA INTO patient_ref  
+    FROM PEOPLE p 
+    WHERE p.ID = 1;  -- Replace with an actual patient ID as needed for testing 
+ 
+    -- Use the GET_PRESCRIPTIONS function to retrieve prescriptions for this patient 
+    pres_cursor := patient_ref.GET_PRESCRIPTIONS; 
+ 
+    DBMS_OUTPUT.PUT_LINE('Prescriptions for Patient ID 1:'); 
+    DBMS_OUTPUT.PUT_LINE('--------------------------'); 
+ 
+    -- Loop through each prescription and display its details using SHOW 
+    LOOP 
+        FETCH pres_cursor INTO v_prescription; 
+        EXIT WHEN pres_cursor%NOTFOUND; 
+         
+        -- Call the SHOW procedure to display each prescription's details 
+        v_prescription.SHOW; 
+    END LOOP; 
+ 
+    -- Close the cursor after processing all records 
+    CLOSE pres_cursor; 
+END; 
+/
+
+CREATE OR REPLACE TYPE BODY MEDICATION AS 
+ 
+    -- MAP method to calculate the total dosage of all ingredients 
+    -- This method sums up the dosage of each ingredient in the medication's 
+    -- ingredient list. It allows sorting medications by total dosage weight. 
+    MAP MEMBER FUNCTION get_total_dosage RETURN NUMBER IS 
+        total_dosage NUMBER := 0;  -- Initialize total dosage to zero 
+    BEGIN 
+        -- Loop through each ingredient in the list and add its dosage 
+        FOR i IN 1 .. ingredient_list.COUNT LOOP 
+            total_dosage := total_dosage + ingredient_list(i).DOSAGE_MG; 
+        END LOOP; 
+         
+        RETURN total_dosage;  -- Return the total dosage for sorting purposes 
+    END get_total_dosage; 
+ 
+    -- Function to provide a general description for a medication 
+    -- Returns a string containing the medication's name and description. 
+    MEMBER FUNCTION get_description RETURN VARCHAR2 IS 
+    BEGIN 
+        RETURN 'General Medication: ' || NAME || ' - ' || DESCRIPTION; 
+    END get_description; 
+END; 
+/
+
+DECLARE 
+    -- This block is intended to initialize and compare two MEDICATION objects  
+    -- based on their total ingredient dosage. Each medication includes  
+    -- associated MEDICATION_INGREDIENT objects with dummy `NULL` references  
+    -- for REF_INGREDIENT, as the example focuses on demonstrating the comparison. 
+ 
+    -- Initialize MEDICATION objects with properly defined MEDICATION_INGREDIENT 
+    med1 MEDICATION := MEDICATION( 
+        1,  
+        'Med1',  
+        'Desc1',  
+        MEDICATION_INGREDIENTS( 
+            MEDICATION_INGREDIENT(1, 100, NULL),  -- Using NULL for REF_INGREDIENT 
+            MEDICATION_INGREDIENT(2, 200, NULL) 
+        ) 
+    ); 
+ 
+    med2 MEDICATION := MEDICATION( 
+        2,  
+        'Med2',  
+        'Desc2',  
+        MEDICATION_INGREDIENTS( 
+            MEDICATION_INGREDIENT(3, 150, NULL),  -- Using NULL for REF_INGREDIENT 
+            MEDICATION_INGREDIENT(4, 250, NULL) 
+        ) 
+    ); 
+ 
+BEGIN 
+    -- Compare the total dosage of ingredients in each MEDICATION object 
+    IF med1 < med2 THEN 
+        DBMS_OUTPUT.PUT_LINE('Total dosage in med1 is less than in med2'); 
+    ELSIF med1 > med2 THEN 
+        DBMS_OUTPUT.PUT_LINE('Total dosage in med1 is greater than in med2'); 
+    ELSE 
+        DBMS_OUTPUT.PUT_LINE('Total dosages in med1 and med2 are equal'); 
+    END IF; 
+END; 
+/
+
+CREATE OR REPLACE TYPE BODY INJECTION_MEDICATION AS 
+    -- Specific description for injection medications 
+    -- Extends the basic medication description with injection-specific details, 
+    -- including needle size and injection type. 
+    OVERRIDING MEMBER FUNCTION get_description RETURN VARCHAR2 IS 
+    BEGIN 
+        RETURN 'Injection Medication: ' || NAME || ' - ' || DESCRIPTION ||  
+               ', Needle Size: ' || NEEDLE_SIZE || ', Type: ' || INJECTION_TYPE; 
+    END get_description; 
+END; 
+/
+
+CREATE OR REPLACE TYPE BODY TABLET AS 
+    -- Specific description for tablet medications 
+    -- Extends the basic medication description with tablet-specific details, 
+    -- such as tablet size. 
+    OVERRIDING MEMBER FUNCTION get_description RETURN VARCHAR2 IS 
+    BEGIN 
+        RETURN 'Tablet Medication: ' || NAME || ' - ' || DESCRIPTION ||  
+               ', Tablet Size: ' || TABLET_SIZE; 
+    END get_description; 
+END; 
+/
+
+CREATE OR REPLACE TYPE BODY LIQUID AS 
+    -- Specific description for liquid medications 
+    -- Extends the basic medication description with liquid-specific details, 
+    -- including the color of the liquid medication. 
+    OVERRIDING MEMBER FUNCTION get_description RETURN VARCHAR2 IS 
+    BEGIN 
+        RETURN 'Liquid Medication: ' || NAME || ' - ' || DESCRIPTION ||  
+               ', Color: ' || COLOR; 
+    END get_description; 
+END; 
+/
+
+SELECT 
+    -- Select statement to display each medication's name and description 
+    -- This query will output customized descriptions based on the medication type 
+    m.NAME AS Medication_Name, m.get_description() AS Description 
+FROM MEDICATIONS m;
+

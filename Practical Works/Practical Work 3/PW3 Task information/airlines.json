@@ -1,0 +1,122 @@
+[
+  {
+    "iata": "DL",
+    "name": "Delta Air Lines",
+    "hub": "ATL",
+    "country": "USA"
+  },
+  {
+    "iata": "AA",
+    "name": "American Airlines",
+    "hub": "DFW",
+    "country": "USA"
+  },
+  {
+    "iata": "UA",
+    "name": "United Airlines",
+    "hub": "ORD",
+    "country": "USA"
+  },
+  {
+    "iata": "WN",
+    "name": "Southwest Airlines",
+    "hub": "DEN",
+    "country": "USA"
+  },
+  {
+    "iata": "AF",
+    "name": "Air France",
+    "hub": "CDG",
+    "country": "France"
+  },
+  {
+    "iata": "LH",
+    "name": "Lufthansa",
+    "hub": "FRA",
+    "country": "Germany"
+  },
+  {
+    "iata": "BA",
+    "name": "British Airways",
+    "hub": "LHR",
+    "country": "United Kingdom"
+  },
+  {
+    "iata": "EK",
+    "name": "Emirates",
+    "hub": "DXB",
+    "country": "UAE"
+  },
+  {
+    "iata": "QR",
+    "name": "Qatar Airways",
+    "hub": "DOH",
+    "country": "Qatar"
+  },
+  {
+    "iata": "SQ",
+    "name": "Singapore Airlines",
+    "hub": "SIN",
+    "country": "Singapore"
+  },
+  {
+    "iata": "CX",
+    "name": "Cathay Pacific",
+    "hub": "HKG",
+    "country": "China"
+  },
+  {
+    "iata": "QF",
+    "name": "Qantas",
+    "hub": "SYD",
+    "country": "Australia"
+  },
+  {
+    "iata": "AC",
+    "name": "Air Canada",
+    "hub": "YYZ",
+    "country": "Canada"
+  },
+  {
+    "iata": "KL",
+    "name": "KLM Royal Dutch Airlines",
+    "hub": "AMS",
+    "country": "Netherlands"
+  },
+  {
+    "iata": "JL",
+    "name": "Japan Airlines",
+    "hub": "HND",
+    "country": "Japan"
+  },
+  {
+    "iata": "NH",
+    "name": "All Nippon Airways",
+    "hub": "NRT",
+    "country": "Japan"
+  },
+  {
+    "iata": "TK",
+    "name": "Turkish Airlines",
+    "hub": "IST",
+    "country": "Turkey"
+  },
+  {
+    "iata": "SU",
+    "name": "Aeroflot",
+    "hub": "SVO",
+    "country": "Russia"
+  },
+  {
+    "iata": "KE",
+    "name": "Korean Air",
+    "hub": "ICN",
+    "country": "South Korea"
+  },
+  {
+    "iata": "CZ",
+    "name": "China Southern Airlines",
+    "hub": "CAN",
+    "country": "China"
+  }
+]
